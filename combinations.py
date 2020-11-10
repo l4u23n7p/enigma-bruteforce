@@ -58,17 +58,25 @@ def generate_rotor_positions():
                 yield s1 + s2 + s3
 
 
-def gen_setting(ciphertext, plaintext):
+def gen_setting(ciphertext, plaintext, settings):
     unused_alpha = set(ALPHABET) - set(ciphertext) - set(plaintext)
 
-    rotors = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII']
-    reflectors = ['B', 'C']
+    rotors = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'] if settings['rotors'] is None else settings['rotors']
+    reflectors = ['B', 'C'] if settings['reflectors'] is None else settings['reflectors']
 
+    if settings['ring'] is None:
     # <-- 2 iterations -->
-    for refl in reflectors:
-        # <-- 17576 iterations -->
-        for r in generate_ring_settings():
+        for refl in reflectors:
+            # <-- 17576 iterations -->
+            for r in generate_ring_settings():
+                # <-- 336 iterations -->
+                for rot_perm in permutations(rotors, 3):
+                    for plug_perm in generate_plug_settings(settings['plugboards'], unused_alpha):
+                        yield {"rotor": rot_perm, "ref": refl, "ring": r, "plug": plug_perm}
+    else:
+        # <-- 2 iterations -->
+        for refl in reflectors:
             # <-- 336 iterations -->
             for rot_perm in permutations(rotors, 3):
-                for plug_perm in generate_plug_settings(10, unused_alpha):
-                    yield {"rotor": rot_perm, "ref": refl, "ring": r, "plug": plug_perm}
+                for plug_perm in generate_plug_settings(settings['plugboards'], unused_alpha):
+                    yield {"rotor": rot_perm, "ref": refl, "ring": settings['ring'], "plug": plug_perm}

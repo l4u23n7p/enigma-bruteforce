@@ -21,8 +21,8 @@ data_queue = Queue(max_queue_size)
 solution_queue = Queue(cpu_count())
 
 
-def combinations_task(ciphertext, plaintext):
-    for setting in gen_setting(ciphertext, plaintext):
+def combinations_task(ciphertext, plaintext, settings):
+    for setting in gen_setting(ciphertext, plaintext, settings):
         while data_queue.qsize() >= max_queue_size:
             time.sleep(0.2)
             if stop_event.is_set():
@@ -69,12 +69,22 @@ def main():
     parser = argparse.ArgumentParser("Try to find enigma settings when cipher and plain text are known.")
     parser.add_argument('--ciphertext', metavar='STRING', required=True)
     parser.add_argument('--plaintext', metavar='STRING', required=True)
+    parser.add_argument('--rotors', action='extend', metavar='ROTOR', nargs='+', required=False, help='Rotors to use', default=None)
+    parser.add_argument('--reflectors', action='extend', metavar='REFLECTOR', nargs='+', required=False, help='Reflectors to use', default=None)
+    parser.add_argument('--ring', metavar='STRING', required=False, help='Ring settings to use', default=None)
+    parser.add_argument('--plugboards',type=int, metavar='NUMBER', required=False, help='Number of plugboards to use', default=10)
     args = parser.parse_args()
 
     global CIPHERTEXT
     global PLAINTEXT
     CIPHERTEXT = args.ciphertext.upper()
     PLAINTEXT = args.plaintext.upper()
+    settings = {
+        'rotors': args.rotors,
+        'reflectors': args.reflectors,
+        'ring': args.ring,
+        'plugboards': args.plugboards
+    }
     # sanity check ciphertext and plaintext
     if not CIPHERTEXT.isalpha():
         print("Error: Ciphertext can only contain letters.")
@@ -94,7 +104,7 @@ def main():
     pool = Pool(num_cores)
     r = pool.map_async(run_enigma_task, [i for i in range(num_cores)])
     # generate combinations
-    combinations_task(CIPHERTEXT, PLAINTEXT)
+    combinations_task(CIPHERTEXT, PLAINTEXT, settings)
 
     pool.close()
     pool.join()
